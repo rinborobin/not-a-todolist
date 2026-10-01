@@ -1,12 +1,15 @@
-import connectToDatabase from './database/db.js';
+import connectToDatabase from "./database/db.js";
+import taskRoutes from "./routes/taskRoute.js";
+import userRoutes from "./routes/userRoute.js";
 
-import express from 'express';
-const app = express()
-const port = 3000
+import express from "express";
+const app = express();
+const port = 3000;
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.use(express.json());
+
+app.use("/api/tasks", taskRoutes);
+app.use("/api/users", userRoutes);
 
 async function startServer() {
   try {
@@ -14,10 +17,10 @@ async function startServer() {
     app.locals.database = database;
 
     app.listen(port, () => {
-      console.log(`Example app listening on port ${port}`)
-    })
+      console.log(`Example app listening on port ${port}`);
+    });
   } catch (error) {
-    console.error('Unable to start server:', error.message);
+    console.error("Unable to start server:", error.message);
     process.exitCode = 1;
   }
 }
