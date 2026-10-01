@@ -1,15 +1,25 @@
-import conectToDatabase from "./database/db.js";
+import connectToDatabase from './database/db.js';
 
 import express from 'express';
 const app = express()
 const port = 3000
 
-conectToDatabase();
-
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+async function startServer() {
+  try {
+    const database = await connectToDatabase();
+    app.locals.database = database;
+
+    app.listen(port, () => {
+      console.log(`Example app listening on port ${port}`)
+    })
+  } catch (error) {
+    console.error('Unable to start server:', error.message);
+    process.exitCode = 1;
+  }
+}
+
+startServer();
