@@ -1,5 +1,4 @@
 import express from "express";
-import { randomUUID } from "node:crypto";
 
 import connectToDatabase from "../database/db.js";
 const router = express.Router();
