@@ -1,34 +1,100 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
 
+import redis from "../config/redis.js"
+
 import connectToDatabase from "../database/db.js";
 const router = express.Router();
 
 const pool = await connectToDatabase();
 
 router.get("/", async (req, res) => {
-  const [rows] = await pool.query("SELECT * FROM todos;");
 
-  res.send(rows);
+  try {
+    const cacheKey = "tasks:all";
+    const cachedTasks = await redis.get(cacheKey);
+
+    if (cachedTasks) {
+      console.log("Redis HIT");
+
+      return res.json(JSON.parse(cachedTasks));
+    }
+
+    console.log("Redis MISS");
+
+
+    const [rows] = await pool.query("SELECT * FROM todos;");
+
+
+    await redis.set(
+      cacheKey,
+      JSON.stringify(rows),
+      {
+        EX: 60
+      }
+    );
+
+    res.send(rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Internal server error"
+    });
+  }
+
 });
 
 // aaaa2222 - 2222 - 2222 - 2222 - 222222222222;
 
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
+router.get("/tasks/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cacheKey = `task:${id}`;
 
-  const [rows] = await pool.query("SELECT * FROM todos WHERE id = ?", [id]);
+    const cachedTask = await redis.get(cacheKey);
 
-  if (rows.length === 0) {
-    return res.status(404).json({
-      message: "Task not found",
+    if (cachedTask) {
+      console.log("Redis HIT");
+
+      return res.json(JSON.parse(cachedTask));
+    }
+
+    console.log("Redis MISS");
+
+    const [rows] = await pool.query(
+      "SELECT * FROM tasks WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: "Task not found"
+      });
+    }
+
+    const task = rows[0];
+
+    await redis.set(
+      cacheKey,
+      JSON.stringify(task),
+      {
+        EX: 60
+      }
+    );
+
+    res.json(task);
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: "Internal server error"
     });
   }
-
-  res.json(rows[0]);
 });
-//one
-router.post("/create-task", async (req, res) => {
+
+router.post("/tasks", async (req, res) => {
   try {
     const { title, description, is_completed } = req.body;
 
@@ -42,6 +108,8 @@ router.post("/create-task", async (req, res) => {
             VALUES (?, ?, ?, ?, ?)`,
       [id, user_id, title, description, is_completed],
     );
+
+    await redis.del("tasks:all");
 
     res.status(201).json({
       id,
