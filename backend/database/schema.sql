@@ -2,10 +2,8 @@ CREATE DATABASE IF NOT EXISTS todo_app;
 
 USE todo_app;
 
--- =========================
 -- Users
--- =========================
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id CHAR(36) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -15,10 +13,8 @@ CREATE TABLE users (
         ON UPDATE CURRENT_TIMESTAMP
 );
 
--- =========================
 -- Todos
--- =========================
-CREATE TABLE todos (
+CREATE TABLE IF NOT EXISTS todos (
     id CHAR(36) PRIMARY KEY,
     user_id CHAR(36) NOT NULL,
     title VARCHAR(255) NOT NULL,
@@ -29,6 +25,10 @@ CREATE TABLE todos (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
+    INDEX idx_todos_user_id (user_id),
+    INDEX idx_todos_completed (is_completed),
+    INDEX idx_todos_due_date (due_date),
+
     CONSTRAINT fk_todos_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)
@@ -36,25 +36,22 @@ CREATE TABLE todos (
         ON UPDATE CASCADE
 );
 
--- =========================
 -- Tags
--- =========================
-CREATE TABLE tags (
+CREATE TABLE IF NOT EXISTS tags (
     id CHAR(36) PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     color VARCHAR(20) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================
 -- Todo ↔ Tags
--- =========================
-CREATE TABLE todo_tags (
+CREATE TABLE IF NOT EXISTS todo_tags (
     todo_id CHAR(36) NOT NULL,
     tag_id CHAR(36) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (todo_id, tag_id),
+    INDEX idx_todo_tags_tag_id (tag_id),
 
     CONSTRAINT fk_todo_tags_todo
         FOREIGN KEY (todo_id)
